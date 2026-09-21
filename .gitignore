@@ -1,3 +1,4 @@
 build/
 vim/doc/tags
 notesium
+.npx-bin/

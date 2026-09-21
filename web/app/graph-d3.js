@@ -160,11 +160,17 @@ export default {
 
       const nodeRadius = d => baseRadius + ((d.degree || 0) * radiusIncrement);
       const maxCenterPull = 60;
+      // Never pull all the way to the exact center: at degree === maxDegree
+      // that target radius hits 0 for every top hub, so with several hubs
+      // tied (or close) for first place they'd all get pulled onto the same
+      // point, where collision can't push them apart. A minimum keeps them
+      // on a small shared ring instead of a single spot.
+      const minCenterPull = maxCenterPull * 0.2;
 
       vm.nodeSel.attr("r", d => { d.radius = nodeRadius(d); return d.radius; });
       vm.simulation.force("collide").radius(d => baseCollideRadius + (nodeRadius(d) - 2));
       vm.simulation.force("radial")
-        .radius(d => maxCenterPull * (1 - (d.degree || 0) / maxDegree))
+        .radius(d => minCenterPull + (maxCenterPull - minCenterPull) * (1 - (d.degree || 0) / maxDegree))
         .strength(0.15);
     },
     applyEmphasis(nodeIds) {

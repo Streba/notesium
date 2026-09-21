@@ -178,10 +178,11 @@ export default {
   },
   mounted() {
     this.fetchGraph();
-    this.graphPollInterval = setInterval(this.refreshGraphIfChanged, 3000);
+    this.graphEventSource = new EventSource('/api/events');
+    this.graphEventSource.onmessage = () => { this.refreshGraphIfChanged(); };
   },
   unmounted() {
-    clearInterval(this.graphPollInterval);
+    this.graphEventSource.close();
   },
   created() {
     this.$nextTick(() => { this.$refs.queryInput.focus(); });

@@ -378,10 +378,11 @@ export default {
   },
   created() {
     this.fetchNotes();
-    this.notesPollInterval = setInterval(this.fetchNotes, 3000);
+    this.notesEventSource = new EventSource('/api/events');
+    this.notesEventSource.onmessage = () => { this.fetchNotes(); };
   },
   unmounted() {
-    clearInterval(this.notesPollInterval);
+    this.notesEventSource.close();
   },
   watch: {
     'lastSave': function() { this.fetchNotes(); },

@@ -422,6 +422,7 @@ func notesiumCat(dir string, opts catOptions) {
 
 func notesiumWeb(dir string, opts webOptions) {
 	populateCache(dir)
+	go watchNotesDir(dir)
 
 	var httpfs http.FileSystem
 
@@ -457,6 +458,8 @@ func notesiumWeb(dir string, opts webOptions) {
 	http.HandleFunc("/api/runtime", heartbeatF(func(w http.ResponseWriter, r *http.Request) {
 		apiRuntime(dir, w, r, opts)
 	}))
+
+	http.HandleFunc("/api/events", apiEvents)
 
 	http.HandleFunc("/api/raw/", heartbeatF(func(w http.ResponseWriter, r *http.Request) {
 		apiRaw(dir, w, r)

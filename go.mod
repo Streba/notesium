@@ -1,12 +1,16 @@
 module github.com/alonswartz/notesium
 
-go 1.20
+go 1.23
+
+require (
+	github.com/fsnotify/fsnotify v1.10.1
+	github.com/junegunn/fzf v0.58.0
+)
 
 require (
 	github.com/charlievieth/fastwalk v1.0.9 // indirect
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/gdamore/tcell/v2 v2.8.1 // indirect
-	github.com/junegunn/fzf v0.58.0 // indirect
 	github.com/junegunn/go-shellwords v0.0.0-20240813092932-a62c48c52e97 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

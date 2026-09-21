@@ -112,7 +112,7 @@ export default {
       display: {
         showTitles:        { value: true,  title: 'show titles' },
         scaleTitles:       { value: true,  title: 'auto-scale titles' },
-        emphasizeHubs: { value: false, title: 'emphasize well-linked notes' },
+        emphasizeHubs: { value: true, title: 'emphasize well-linked notes' },
       },
       forces: {
         chargeStrength:  { value: -30, min: -100, max: 0,  step: 1,    title: 'repel force' },

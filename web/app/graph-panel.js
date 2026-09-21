@@ -100,7 +100,7 @@ export default {
       display: {
         showTitles:        { value: true,  title: 'show titles' },
         scaleTitles:       { value: true,  title: 'auto-scale titles' },
-        emphasizeHubs: { value: false, title: 'emphasize well-linked notes' },
+        emphasizeHubs: { value: true, title: 'emphasize well-linked notes' },
         emphasizeActive:   { value: true,  title: 'emphasize active note' },
       },
       forces: {

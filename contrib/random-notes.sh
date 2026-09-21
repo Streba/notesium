@@ -30,8 +30,8 @@ sentence() {
 base_epoch=$(date +%s)
 prev_file=""
 prev_title=""
-declare -a all_files
-declare -a all_titles
+all_files=()
+all_titles=()
 
 for ((i = 0; i < COUNT; i++)); do
     ctime_epoch=$((base_epoch + i))

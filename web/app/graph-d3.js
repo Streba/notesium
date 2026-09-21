@@ -90,6 +90,7 @@ export default {
         .data(nodes, d => d.id)
         .join(enter => enter.append("text")
           .classed("title", true)
+          .attr("text-anchor", "middle")
           .on("click", function(event, node) { event.stopPropagation(); vm.$emit('title-click', node.id); }))
         .text(d => d.title);
 
@@ -139,7 +140,7 @@ export default {
       const baseCollideRadius = vm.forces.collideRadius.value;
 
       if (!vm.display.emphasizeHubs.value) {
-        vm.nodeSel.attr("r", 2);
+        vm.nodeSel.attr("r", d => { d.radius = 2; return d.radius; });
         vm.simulation.force("collide").radius(baseCollideRadius);
         vm.simulation.force("radial").strength(0);
         return;
@@ -160,7 +161,7 @@ export default {
       const nodeRadius = d => baseRadius + ((d.degree || 0) * radiusIncrement);
       const maxCenterPull = 60;
 
-      vm.nodeSel.attr("r", nodeRadius);
+      vm.nodeSel.attr("r", d => { d.radius = nodeRadius(d); return d.radius; });
       vm.simulation.force("collide").radius(d => baseCollideRadius + (nodeRadius(d) - 2));
       vm.simulation.force("radial")
         .radius(d => maxCenterPull * (1 - (d.degree || 0) / maxDegree))
@@ -222,7 +223,8 @@ export default {
           .attr("cx", d => d.x)
           .attr("cy", d => d.y);
         vm.titleSel
-          .attr('x', d => d.x + 4).attr('y', d => d.y);
+          .attr('x', d => d.x)
+          .attr('y', d => d.y - (d.radius || 2) - 2);
       });
 
       const zoom = d3.zoom().scaleExtent([0.3, 3]).on('zoom', function(event) {

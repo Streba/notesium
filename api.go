@@ -49,7 +49,10 @@ func apiHeartbeat(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Heartbeat received."))
 }
 
-func apiList(w http.ResponseWriter, r *http.Request) {
+func apiList(dir string, w http.ResponseWriter, r *http.Request) {
+	noteCache = nil
+	populateCache(dir)
+
 	jsonResponse, err := json.Marshal(noteCache)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

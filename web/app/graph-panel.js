@@ -113,22 +113,42 @@ export default {
     }
   },
   methods: {
+    computeGraphData(response) {
+      let nodes = [];
+      let links = [];
+      const notes = Object.values(response);
+      notes.forEach(note => {
+        nodes.push({ id: note.Filename, title: note.Title, isLabel: note.IsLabel });
+        if (note.OutgoingLinks) {
+          note.OutgoingLinks.forEach(link => {
+            if (link.Title !== '') links.push({ source: note.Filename, target: link.Filename });
+          });
+        }
+      });
+      return { nodes, links };
+    },
     fetchGraph() {
       fetch("/api/notes")
         .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e)))
+        .then(response => { this.graphData = this.computeGraphData(response); })
+        .catch(e => {
+          console.error(e);
+        });
+    },
+    // The D3 simulation in graph-d3.js only reads graphData once at mount,
+    // so picking up notes added outside this tab (other devices, scripts,
+    // sync) needs a full remount. Only remount when the data actually
+    // changed, so idle polling doesn't reset pan/zoom or re-settle the
+    // layout for nothing.
+    refreshGraphIfChanged() {
+      fetch("/api/notes")
+        .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e)))
         .then(response => {
-          let nodes = [];
-          let links = [];
-          const notes = Object.values(response);
-          notes.forEach(note => {
-            nodes.push({ id: note.Filename, title: note.Title, isLabel: note.IsLabel });
-            if (note.OutgoingLinks) {
-              note.OutgoingLinks.forEach(link => {
-                if (link.Title !== '') links.push({ source: note.Filename, target: link.Filename });
-              });
-            }
-          });
-          this.graphData = { nodes, links };
+          const next = this.computeGraphData(response);
+          if (JSON.stringify(next) === JSON.stringify(this.graphData)) return;
+          if (this.$refs.forcegraph) this.initialTransform = this.$refs.forcegraph.zoomTransform;
+          this.graphData = null;
+          this.$nextTick(() => { this.graphData = next; });
         })
         .catch(e => {
           console.error(e);
@@ -146,6 +166,10 @@ export default {
   },
   created() {
     this.fetchGraph();
+    this.graphPollInterval = setInterval(this.refreshGraphIfChanged, 3000);
+  },
+  unmounted() {
+    clearInterval(this.graphPollInterval);
   },
   watch: {
     'lastSave': function() {

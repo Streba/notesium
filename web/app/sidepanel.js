@@ -378,6 +378,10 @@ export default {
   },
   created() {
     this.fetchNotes();
+    this.notesPollInterval = setInterval(this.fetchNotes, 3000);
+  },
+  unmounted() {
+    clearInterval(this.notesPollInterval);
   },
   watch: {
     'lastSave': function() { this.fetchNotes(); },

@@ -52,14 +52,22 @@ export default {
         if (!incomingIds.has(id)) nodesById.delete(id);
       }
 
+      const degreeById = new Map();
+      data.links.forEach(l => {
+        degreeById.set(l.source, (degreeById.get(l.source) || 0) + 1);
+        degreeById.set(l.target, (degreeById.get(l.target) || 0) + 1);
+      });
+
       data.nodes.forEach(n => {
+        const degree = degreeById.get(n.id) || 0;
         const existing = nodesById.get(n.id);
         if (existing) {
           existing.title = n.title;
           existing.isLabel = n.isLabel;
+          existing.degree = degree;
         } else {
           const seed = vm.seedPosition(n.id, data.links, nodesById);
-          nodesById.set(n.id, { id: n.id, title: n.title, isLabel: n.isLabel, x: seed.x, y: seed.y, vx: 0, vy: 0 });
+          nodesById.set(n.id, { id: n.id, title: n.title, isLabel: n.isLabel, degree, x: seed.x, y: seed.y, vx: 0, vy: 0 });
         }
       });
 
@@ -85,7 +93,7 @@ export default {
           .on("click", function(event, node) { event.stopPropagation(); vm.$emit('title-click', node.id); }))
         .text(d => d.title);
 
-      vm.applyDynamicNodeRadius();
+      vm.applyHubEmphasis();
       vm.applyTitleVisibility();
       vm.applyTitleScale();
       vm.applyEmphasis(vm.emphasizeNodeIds);
@@ -121,18 +129,25 @@ export default {
     applyTitleVisibility() {
       this.titleSel.classed("hidden", !this.display.showTitles.value);
     },
-    applyDynamicNodeRadius() {
+    // Makes well-linked notes stand out: bigger circles, and pulled toward
+    // the center via a per-node forceRadial (small target radius for high
+    // degree, large for low degree - hubs settle in the middle, leaves
+    // drift to the periphery). Collide radius is scaled to match the drawn
+    // circle size so bigger hubs don't overlap their neighbors.
+    applyHubEmphasis() {
       const vm = this;
-      if (!vm.display.dynamicNodeRadius.value) {
+      const baseCollideRadius = vm.forces.collideRadius.value;
+
+      if (!vm.display.emphasizeHubs.value) {
         vm.nodeSel.attr("r", 2);
+        vm.simulation.force("collide").radius(baseCollideRadius);
+        vm.simulation.force("radial").strength(0);
         return;
       }
-      const getLinkCount = nodeId => vm.graphData.links.reduce(
-        (count, link) => (link.source === nodeId || link.target === nodeId) ? count + 1 : count, 0);
 
-      const totalNodes = vm.graphData.nodes.length;
-      const linkCounts = vm.graphData.nodes.map(n => getLinkCount(n.id));
-      const maxLinks = Math.max(...linkCounts, 1);
+      const currentNodes = vm.nodeSel.data();
+      const totalNodes = currentNodes.length;
+      const maxDegree = Math.max(...currentNodes.map(n => n.degree || 0), 1);
 
       const minBaseRadius = 1;
       const maxBaseRadius = 5;
@@ -140,9 +155,16 @@ export default {
 
       const minRadiusIncrement = 0.1;
       const maxRadiusIncrement = 0.5;
-      const radiusIncrement = Math.max(minRadiusIncrement, Math.min(maxRadiusIncrement, 5 / maxLinks));
+      const radiusIncrement = Math.max(minRadiusIncrement, Math.min(maxRadiusIncrement, 5 / maxDegree));
 
-      vm.nodeSel.attr("r", n => baseRadius + (getLinkCount(n.id) * radiusIncrement));
+      const nodeRadius = d => baseRadius + ((d.degree || 0) * radiusIncrement);
+      const maxCenterPull = 60;
+
+      vm.nodeSel.attr("r", nodeRadius);
+      vm.simulation.force("collide").radius(d => baseCollideRadius + (nodeRadius(d) - 2));
+      vm.simulation.force("radial")
+        .radius(d => maxCenterPull * (1 - (d.degree || 0) / maxDegree))
+        .strength(0.15);
     },
     applyEmphasis(nodeIds) {
       const vm = this;
@@ -183,7 +205,8 @@ export default {
         .force("collide", d3.forceCollide())
         .force("center", d3.forceCenter())
         .force("x", d3.forceX())
-        .force("y", d3.forceY());
+        .force("y", d3.forceY())
+        .force("radial", d3.forceRadial(0, 0, 0).strength(0));
 
       vm.linkGroup = svg.append("g").classed("link", true).attr("stroke", "currentColor");
       vm.nodeGroup = svg.append("g");
@@ -217,7 +240,7 @@ export default {
 
       vm.$watch('display.scaleTitles.value', () => vm.applyTitleScale());
       vm.$watch('display.showTitles.value', () => vm.applyTitleVisibility());
-      vm.$watch('display.dynamicNodeRadius.value', () => vm.applyDynamicNodeRadius());
+      vm.$watch('display.emphasizeHubs.value', () => { vm.applyHubEmphasis(); vm.simulation.alpha(0.5).restart(); });
       vm.$watch('emphasizeNodeIds', nodeIds => vm.applyEmphasis(nodeIds));
 
       vm.$watch('forces.chargeStrength.value', function(value) {
@@ -225,8 +248,8 @@ export default {
         vm.simulation.alpha(1).restart();
       });
 
-      vm.$watch('forces.collideRadius.value', function(value) {
-        vm.simulation.force("collide").radius(value);
+      vm.$watch('forces.collideRadius.value', function() {
+        vm.applyHubEmphasis();
         vm.simulation.alpha(1).restart();
       });
 

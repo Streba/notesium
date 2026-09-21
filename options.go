@@ -40,6 +40,7 @@ Commands:
     --prompt=STR    Set custom prompt text
     -- CMD [OPTS]   Input (default: list --color --prefix=label --sort=alpha)
   web               Start web server
+    --host=ADDR     Address for web server to listen on (default: 127.0.0.1)
     --webroot=PATH  Path to web root to serve (default: embedded webroot)
     --mount=DIR:URI Additional directory to serve under webroot (experimental)
     --open-browser  Launch default web browser with web server URL
@@ -294,6 +295,8 @@ func parseOptions(args []string) (Command, error) {
 		opts.mounts = make(map[string]string)
 		for _, opt := range args[1:] {
 			switch {
+			case strings.HasPrefix(opt, "--host="):
+				opts.host = strings.TrimPrefix(opt, "--host=")
 			case strings.HasPrefix(opt, "--webroot="):
 				webrootStr := strings.TrimPrefix(opt, "--webroot=")
 				webrootAbs, err := getAbsDir(webrootStr)

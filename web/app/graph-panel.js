@@ -78,7 +78,6 @@ var t = `
       :display=display
       :forces=forces
       :emphasizeNodeIds=emphasizeNodeIds
-      :initialTransform=initialTransform
       @title-click="$emit('note-open', $event)"
     />
 
@@ -96,7 +95,6 @@ export default {
   data() {
     return {
       graphData: null,
-      initialTransform: null,
       query: '',
       showSettings: false,
       display: {
@@ -135,25 +133,6 @@ export default {
           console.error(e);
         });
     },
-    // The D3 simulation in graph-d3.js only reads graphData once at mount,
-    // so picking up notes added outside this tab (other devices, scripts,
-    // sync) needs a full remount. Only remount when the data actually
-    // changed, so idle polling doesn't reset pan/zoom or re-settle the
-    // layout for nothing.
-    refreshGraphIfChanged() {
-      fetch("/api/notes")
-        .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e)))
-        .then(response => {
-          const next = this.computeGraphData(response);
-          if (JSON.stringify(next) === JSON.stringify(this.graphData)) return;
-          if (this.$refs.forcegraph) this.initialTransform = this.$refs.forcegraph.zoomTransform;
-          this.graphData = null;
-          this.$nextTick(() => { this.graphData = next; });
-        })
-        .catch(e => {
-          console.error(e);
-        });
-    },
   },
   computed: {
     emphasizeNodeIds() {
@@ -167,17 +146,13 @@ export default {
   created() {
     this.fetchGraph();
     this.graphEventSource = new EventSource('/api/events');
-    this.graphEventSource.onmessage = () => { this.refreshGraphIfChanged(); };
+    this.graphEventSource.onmessage = () => { this.fetchGraph(); };
   },
   unmounted() {
     this.graphEventSource.close();
   },
   watch: {
-    'lastSave': function() {
-      this.initialTransform = this.$refs.forcegraph.zoomTransform;
-      this.graphData = null;
-      this.fetchGraph();
-    },
+    'lastSave': function() { this.fetchGraph(); },
   },
   template: t
 }

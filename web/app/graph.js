@@ -148,24 +148,6 @@ export default {
           console.error(e);
         });
     },
-    // The D3 simulation in graph-d3.js only reads graphData once at mount,
-    // so picking up notes added outside this tab (other devices, scripts,
-    // sync) needs a full remount. Only remount when the data actually
-    // changed, so idle polling doesn't reset the layout for nothing.
-    refreshGraphIfChanged() {
-      fetch("/api/notes")
-        .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e)))
-        .then(response => {
-          const next = this.computeGraphData(response);
-          if (JSON.stringify(next) === JSON.stringify(this.graphData)) return;
-          this.nodes = next.nodes;
-          this.graphData = null;
-          this.$nextTick(() => { this.graphData = next; });
-        })
-        .catch(e => {
-          console.error(e);
-        });
-    },
   },
   computed: {
     emphasizeNodeIds() {
@@ -179,7 +161,7 @@ export default {
   mounted() {
     this.fetchGraph();
     this.graphEventSource = new EventSource('/api/events');
-    this.graphEventSource.onmessage = () => { this.refreshGraphIfChanged(); };
+    this.graphEventSource.onmessage = () => { this.fetchGraph(); };
   },
   unmounted() {
     this.graphEventSource.close();
